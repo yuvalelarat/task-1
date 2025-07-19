@@ -8,10 +8,6 @@
 #include <sys/time.h>
 #include <setjmp.h>
 
-// #ifndef SIG_UNBLOCK
-// #define SIG_UNBLOCK 2
-// #endif
-
 #define INVALID_TID -1
 
 typedef enum { READY, RUNNING, BLOCKED, TERMINATED } ThreadState;
@@ -113,11 +109,24 @@ static void scheduler(int sig) {
 
     
     if (next_tid == INVALID_TID) {//exit if no thread found
-         if (threads[0].state != TERMINATED && current_tid != 0) {
-            current_tid = 0;
-            threads[current_tid].state = RUNNING;
-            sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-            siglongjmp(threads[current_tid].context, 1);
+        int all_others_terminated = 1;
+        for (int i = 1; i < UTHREAD_MAX_THREADS; ++i) {
+            if (threads[i].state != TERMINATED) {
+                all_others_terminated = 0;
+                break;
+            }
+        }
+
+        if (all_others_terminated) {
+            if (threads[0].state != TERMINATED && current_tid != 0) {
+                current_tid = 0;
+                threads[current_tid].state = RUNNING;
+                sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
+                siglongjmp(threads[current_tid].context, 1);
+            } else if (current_tid == 0) {
+                sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
+                exit(0);
+            }
         }
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
         return;
@@ -206,12 +215,12 @@ int uthread_create(uthread_entry func) {
 int uthread_exit(int tid) {
     sigprocmask(SIG_BLOCK, &vt_sigset, NULL);
 
-    if (tid < 0 || tid >= UTHREAD_MAX_THREADS || tid == 0) {
+    if (tid < 0 || tid >= UTHREAD_MAX_THREADS) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
         return -1; //invalid, unblocking and returning failure
     }
 
-    //if (tid == 0) exit(0); //the task asked both on main thread to'return failure and exit to program so i keep this here commented...
+    if (tid == 0) exit(0);
 
     threads[tid].state = TERMINATED;
     num_threads--;
