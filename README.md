@@ -1,0 +1,3 @@
+-to run this program please compile threads.h threads.c and main.c then run main.c:
+- gcc uthreads.h uthreads.c main.c -o test
+- then excute ./test
