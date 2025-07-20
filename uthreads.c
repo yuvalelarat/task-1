@@ -81,7 +81,9 @@ static void scheduler(int sig) {
 
     if (threads[current_tid] && threads[current_tid]->state == RUNNING) {
         threads[current_tid]->state = READY;
-        enqueue(current_tid);
+        if (current_tid != 0) {
+            enqueue(current_tid);
+        }
     }
 
     for (int i = 0; i < UTHREAD_MAX_THREADS; i++) {
@@ -114,12 +116,11 @@ static void scheduler(int sig) {
             }
         }
 
-        if (all_terminated && current_tid != 0 && threads[0] && threads[0]->state != TERMINATED) {
-            current_tid = 0;
-            threads[current_tid]->state = RUNNING;
-            sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-            siglongjmp(threads[current_tid]->context, 1);
-        } else if (current_tid == 0) {
+        if (all_terminated) {
+            printf("---------ALL THREADS TERMINATED.---------\nExiting the program.\n");
+            threads[0]->state = TERMINATED;
+            free(threads[0]);
+            threads[0] = NULL;
             sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
             exit(0);//exit if no thread found
         }
