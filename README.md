@@ -1,3 +1,3 @@
--to run this program please compile threads.h threads.c and main.c then run main.c:
+-to run this program please compile threads.h threads.c and test.c then run test.c:
 - gcc uthreads.h uthreads.c main.c -o test
 - then excute ./test
