@@ -14,7 +14,7 @@ long get_elapsed_ms() {
            (current.tv_usec - start_time.tv_usec) / 1000;
 }
 
-int tid1, tid2, tid3, tid4;
+int tid1, tid2, tid3, tid4, tid5, tid6;
 
 void worker_thread_1_wrapper() {
     printf("[%ld ms] Thread %d started\n", get_elapsed_ms(), tid1);
@@ -59,6 +59,35 @@ void quick_thread_wrapper() {
     uthread_exit(tid4);
 }
 
+void yielding_thread_5_wrapper() {
+    printf("[%ld ms] Thread %d (yielding) started\n", get_elapsed_ms(), tid5);
+
+    for (int i = 1; i <= 10; i++) {
+        if (i > 6 ) {
+            printf("[%ld ms] Thread %d iteration %d\n", get_elapsed_ms(), tid5, i);
+        }else {
+            printf("[%ld ms] Thread %d (yielding) iteration %d\n", get_elapsed_ms(), tid5, i);
+        }
+        
+        uthread_sleep_quantums(1); // Yield for 1 quantum
+    }
+
+    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), tid5);
+    uthread_exit(tid5);
+}
+
+void yielding_thread_6_wrapper() {
+    printf("[%ld ms] Thread %d (yielding) started\n", get_elapsed_ms(), tid6);
+
+    for (int i = 1; i <= 5; i++) {
+        printf("[%ld ms] Thread %d (yielding) iteration %d\n", get_elapsed_ms(), tid6, i);
+        uthread_sleep_quantums(1); // Yield for 1 quantum
+    }
+
+    printf("[%ld ms] Thread %d (yielding) finished\n", get_elapsed_ms(), tid6);
+    uthread_exit(tid6);
+}
+
 int main() {
     printf("=== User-Level Threading Library Test ===\n");
     gettimeofday(&start_time, NULL);
@@ -74,8 +103,11 @@ int main() {
     tid2 = uthread_create(worker_thread_2_wrapper);
     tid3 = uthread_create(sleeping_thread_wrapper);
     tid4 = uthread_create(quick_thread_wrapper);
+    tid5 = uthread_create(yielding_thread_5_wrapper);
+    tid6 = uthread_create(yielding_thread_6_wrapper);
 
-    printf("[%ld ms] Created threads: %d, %d, %d, %d\n", get_elapsed_ms(), tid1, tid2, tid3, tid4);
+        printf("[%ld ms] Created threads: %d, %d, %d, %d, %d, %d\n",
+           get_elapsed_ms(), tid1, tid2, tid3, tid4, tid5, tid6);
 
     raise(SIGVTALRM); //trigger signal to start
 
