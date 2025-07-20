@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <signal.h>
 
 static struct timeval start_time;
-#define FIXED_QUANTUM_US 100000 // 100ms time quantum
+#define FIXED_QUANTUM_US 100000 // 100ms
 
 long get_elapsed_ms() {
     struct timeval current;
@@ -76,14 +77,11 @@ int main() {
 
     printf("[%ld ms] Created threads: %d, %d, %d, %d\n", get_elapsed_ms(), tid1, tid2, tid3, tid4);
 
-    for (int i = 0; i < 7000; i++) { //this is to make sure the main() thread has enough time to run to demonstrate the libarary
-        if (i % 1000 == 0) {
-            printf("[%ld ms] Main() thread working iteration %d\n", get_elapsed_ms(), i / 1000 + 1);
-        }
-        volatile long count = 0;
-        for (long j = 0; j < 10000000; j++) count++;
+    raise(SIGVTALRM); //trigger signal to start
+
+    while (1) {
+        pause(); //let it run
     }
 
-    printf("[%ld ms] Main() thread exiting\n", get_elapsed_ms());
     return 0;
 }
