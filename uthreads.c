@@ -178,7 +178,7 @@ int uthread_create(uthread_entry func) {
 
     if (num_threads >= UTHREAD_MAX_THREADS) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //failure
+        return -1; 
     }
 
     int tid = -1;
@@ -190,7 +190,7 @@ int uthread_create(uthread_entry func) {
     }
     if (tid == -1) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //failure
+        return -1;
     }
 
     threads[tid].tid = tid;
@@ -217,19 +217,19 @@ int uthread_exit(int tid) {
 
     if (tid < 0 || tid >= UTHREAD_MAX_THREADS) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //invalid, unblocking and returning failure
+        return -1;
     }
 
     if (tid == 0) exit(0);
 
-    threads[tid].state = TERMINATED;
-    num_threads--;
+    threads[tid].state = TERMINATED; //"freeing" the thread as i didnt make it dynamically allocated
+    num_threads--; 
     
     sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
 
     if (tid == current_tid) scheduler(0); //if the thread here is currently running switch to next thread
 
-    return 0; //success
+    return 0;
 }
 
 int uthread_block(int tid) {
@@ -238,7 +238,7 @@ int uthread_block(int tid) {
     if (tid <= 0 || tid >= UTHREAD_MAX_THREADS ||
         (threads[tid].state != RUNNING && threads[tid].state != READY)) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //invalid - failure
+        return -1;
     }
 
     threads[tid].state = BLOCKED;
@@ -247,7 +247,7 @@ int uthread_block(int tid) {
 
     if (tid == current_tid) scheduler(0);
 
-    return 0; //success
+    return 0;
 }
 
 int uthread_unblock(int tid) {
@@ -255,7 +255,7 @@ int uthread_unblock(int tid) {
 
     if (tid <= 0 || tid >= UTHREAD_MAX_THREADS || threads[tid].state != BLOCKED) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //invalid - failure
+        return -1;
     }
 
     threads[tid].state = READY;
@@ -263,7 +263,7 @@ int uthread_unblock(int tid) {
 
     sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
 
-    return 0; //success
+    return 0;
 }
 
 int uthread_sleep_quantums(int num_quantums) {
@@ -271,7 +271,7 @@ int uthread_sleep_quantums(int num_quantums) {
 
     if (current_tid == 0 || num_quantums <= 0) {
         sigprocmask(SIG_UNBLOCK, &vt_sigset, NULL);
-        return -1; //invalid - failure
+        return -1;
     }
 
     threads[current_tid].sleep_quantums = num_quantums;
