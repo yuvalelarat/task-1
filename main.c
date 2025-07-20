@@ -3,10 +3,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-static int thread_counter = 0;
 static struct timeval start_time;
-
-#define FIXED_QUANTUM_US 100000 // 100ms
+#define FIXED_QUANTUM_US 100000 // 100ms time quantum
 
 long get_elapsed_ms() {
     struct timeval current;
@@ -15,36 +13,49 @@ long get_elapsed_ms() {
            (current.tv_usec - start_time.tv_usec) / 1000;
 }
 
-void worker_thread_1(void) {
-    int thread_id = ++thread_counter;
-    printf("[%ld ms] Thread %d started\n", get_elapsed_ms(), thread_id);
+int tid1, tid2, tid3, tid4;
+
+void worker_thread_1_wrapper() {
+    printf("[%ld ms] Thread %d started\n", get_elapsed_ms(), tid1);
+
     for (int i = 0; i < 3; i++) {
-        printf("[%ld ms] Thread %d working... iteration %d\n",
-               get_elapsed_ms(), thread_id, i + 1);
+        printf("[%ld ms] Thread %d working... iteration %d\n", get_elapsed_ms(), tid1, i + 1);
         volatile long count = 0;
-        for (long j = 0; j < 20000000; j++) count++;  // smaller loop
+        for (long j = 0; j < 20000000; j++) count++;
     }
-    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), thread_id);
-    uthread_exit(thread_id);  // call exit explicitly
+
+    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), tid1);
+    uthread_exit(tid1);
 }
 
-void sleeping_thread(void) {
-    int thread_id = ++thread_counter;
-    printf("[%ld ms] Thread %d (sleeper) started\n", get_elapsed_ms(), thread_id);
+void worker_thread_2_wrapper() {
+    printf("[%ld ms] Thread %d started\n", get_elapsed_ms(), tid2);
+
+    for (int i = 0; i < 3; i++) {
+        printf("[%ld ms] Thread %d working... iteration %d\n", get_elapsed_ms(), tid2, i + 1);
+        volatile long count = 0;
+        for (long j = 0; j < 20000000; j++) count++;
+    }
+
+    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), tid2);
+    uthread_exit(tid2);
+}
+
+void sleeping_thread_wrapper() {
+    printf("[%ld ms] Thread %d (sleeper) started\n", get_elapsed_ms(), tid3);
     volatile long count = 0;
     for (long j = 0; j < 10000000; j++) count++;
-    printf("[%ld ms] Thread %d sleeping for 2 quantums\n", get_elapsed_ms(), thread_id);
+    printf("[%ld ms] Thread %d sleeping for 2 quantums\n", get_elapsed_ms(), tid3);
     uthread_sleep_quantums(2);
-    printf("[%ld ms] Thread %d woke up\n", get_elapsed_ms(), thread_id);
+    printf("[%ld ms] Thread %d woke up\n", get_elapsed_ms(), tid3);
     for (long j = 0; j < 10000000; j++) count++;
-    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), thread_id);
-    uthread_exit(thread_id);
+    printf("[%ld ms] Thread %d finished\n", get_elapsed_ms(), tid3);
+    uthread_exit(tid3);
 }
 
-void quick_thread(void) {
-    int thread_id = ++thread_counter;
-    printf("[%ld ms] Thread %d (quick) started and finished\n", get_elapsed_ms(), thread_id);
-    uthread_exit(thread_id);
+void quick_thread_wrapper() {
+    printf("[%ld ms] Thread %d (quick) started and finished\n", get_elapsed_ms(), tid4);
+    uthread_exit(tid4);
 }
 
 int main() {
@@ -58,20 +69,17 @@ int main() {
 
     printf("[%ld ms] Threading system initialized\n", get_elapsed_ms());
 
-    // Create threads
-    int tid1 = uthread_create(worker_thread_1);
-    int tid2 = uthread_create(worker_thread_1);
-    int tid3 = uthread_create(sleeping_thread);
-    int tid4 = uthread_create(quick_thread);
+    tid1 = uthread_create(worker_thread_1_wrapper);
+    tid2 = uthread_create(worker_thread_2_wrapper);
+    tid3 = uthread_create(sleeping_thread_wrapper);
+    tid4 = uthread_create(quick_thread_wrapper);
 
     printf("[%ld ms] Created threads: %d, %d, %d, %d\n", get_elapsed_ms(), tid1, tid2, tid3, tid4);
 
-    // Main() thread doing some loops so the other threads can run
-    for (int i = 0; i < 2000; i++) {
+    for (int i = 0; i < 7000; i++) { //this is to make sure the main() thread has enough time to run to demonstrate the libarary
         if (i % 1000 == 0) {
             printf("[%ld ms] Main() thread working iteration %d\n", get_elapsed_ms(), i / 1000 + 1);
         }
-        // printf("[%ld ms] Main() thread working iteration %d\n", get_elapsed_ms(), i + 1);
         volatile long count = 0;
         for (long j = 0; j < 10000000; j++) count++;
     }
